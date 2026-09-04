@@ -53,8 +53,3 @@ class Student(Base):
 
 
 
-
-#     grade_level (integer, 1-12)
-#     gpa (float, optional)
-#     is_enrolled (boolean, default True)
-    # created_at (datetime, auto-generated)

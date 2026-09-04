@@ -4,9 +4,9 @@ from sqlalchemy.orm import Session
 from app.models.student import Student
 from sqlalchemy.exc import IntegrityError
 from app.schemas.student import StudentPatch,StudentUpdate
+from fastapi import APIRouter, Depends,status,Response,Query
 from app.schemas.student import StudentCreate,StudentResponse
-from fastapi import APIRouter, Depends, HTTPException,status,Response
-
+from app.utils.exceptions import BadRequestException, DuplicateException, NotFoundException
 
 router = APIRouter(
     prefix="/students",
@@ -19,16 +19,16 @@ def get_student_or_404(student_id: int, db: Session,) -> Student:
     student = db.get(Student, student_id)
 
     if student is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Student not found"
+        raise NotFoundException(
+            "Student",
+            student_id,
             )
     return student
 
 #------------------CRUD Lifecycle---------------------
 
 @router.post(
-    "/students",
+    "",
     response_model=StudentResponse, status_code=201)
 def Create_student(
     student_data: StudentCreate, 
@@ -45,10 +45,12 @@ def Create_student(
     except IntegrityError:
         db.rollback()
 
-        raise HTTPException(
-            status_code=409,
-            detail="A student withthis email already exists"
+        raise DuplicateException(
+            "Student",
+            "email",
+            student.email,
             )
+            
     db.refresh(student)
 
     return student
@@ -56,11 +58,15 @@ def Create_student(
 #----------------------multiple student list ---------------------
     
 @router.get(
-    "/students",
+    "",
     response_model=list[StudentResponse],
     )
 def get_students(
-    grade_level: int | None = None, 
+    grade_level: int | None = Query(
+        default=None,
+        ge=1,
+        le=12,
+    ), 
     is_enrolled: bool | None = None,
     db: Session = Depends(
         get_db),
@@ -85,7 +91,7 @@ def get_students(
 
 
 @router.get(
-    "/students/{student_id}",
+    "/{student_id}",
     response_model=StudentResponse,
     )
 def get_student(
@@ -100,7 +106,7 @@ def get_student(
 
 
 @router.put(
-    "/students/{student_id}",
+    "/{student_id}",
     response_model=StudentResponse,
     )
 def update_student(
@@ -122,9 +128,10 @@ def update_student(
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(
-            status_code=409,
-            detail="A student with this email addres already exists"
+        raise DuplicateException(
+            "Student",
+            "email",
+            student.email,
             )
     db.refresh(student)
 
@@ -136,7 +143,7 @@ def update_student(
 
 
 @router.patch(
-    "/students/{student_id}",
+    "/{student_id}",
     response_model=StudentResponse,
     )
 def patch_student(
@@ -151,17 +158,24 @@ def patch_student(
     update_data = student_data.model_dump(
         exclude_unset=True
         )
-#----------------------------------- user input handling-------------------
+#----------------------- user input handling-------------------
     for field, value in update_data.items():
         setattr(student, field, value)
+#-----------------------Empty field handling
+    if not update_data:
+        raise BadRequestException(
+            "At least one field must be provided"
+            )
+
 #--------------------------------------------------------------------
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(
-            status_code=409,
-            detail="A student with this email already exists",
+        raise DuplicateException(
+            "Student",
+            "email",
+            student.email,
             )
 
     db.refresh(student)
@@ -171,7 +185,7 @@ def patch_student(
 
 
 @router.delete(
-    "/students/{student_id}",
+    "/{student_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     )
 def delete_student(
@@ -181,6 +195,10 @@ def delete_student(
         ):
 
     student = get_student_or_404(student_id, db)
+    if student.is_enrolled:
+        raise BadRequestException(
+            "An enrolled student cannot be deleted"
+        )
 
     db.delete(student)
 

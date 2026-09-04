@@ -36,6 +36,7 @@ class StudentPatch(BaseModel):
 
 
 class StudentResponse(BaseModel):
+    id: int
     name: str
     email: str
     grade_level: int

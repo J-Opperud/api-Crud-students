@@ -4,17 +4,54 @@ Student Database API
 
 A FastAPI  implementing full CRUD operations for a Student resource using SQLAlchemy and SQLite.
 
+Project Structure
+
+api-student/
+│
+├── app/
+│   ├── main.py
+│   ├── database.py
+│   │
+│   ├── models/
+│   │   └── student.py
+│   │
+│   ├── schemas/
+│   │   └── student.py
+│   │
+│   ├── routers/
+│   │   └── students.py
+│   │
+│   └── utils/
+│       └── exceptions.py
+│
+├── tests/
+│   ├── test_lab.py
+│   └── test_lab2.py
+│
+├── requirements.txt
+└── README.md
+
 ## Design Notes
 
-The application separates responsibilities:
+The application separates responsibilities between the API, validation, database models, and persistence layers:
 
 FastAPI
    ↓
-Pydantic schemas
+Pydantic Schemas
    ↓
-SQLAlchemy model
+SQLAlchemy Models
    ↓
-SQLite database
+SQLite Database
+
+Custom exceptions are handled globally by FastAPI:
+
+Application Error
+      ↓
+Custom Exception
+      ↓
+Global Exception Handler
+      ↓
+Consistent JSON Response
 
 ## Build and demonstrate CRUD pattern:
 
@@ -28,9 +65,11 @@ SQLite database
 ## Tech Stack
 
     FastAPI — API framework and automatic Swagger documentation
-    Pydantic — request/response validation
+    Pydantic — request and response validation
     SQLAlchemy — ORM and database interaction
-    SQLite — lightweight database for development/testing
+    SQLite — lightweight database for development and testing
+    pytest — automated testing framework
+    FastAPI TestClient — endpoint testing without running the server separately
 
 ## Student Model
 
@@ -70,16 +109,47 @@ Pydantic validates constraints such as grade_level being between 1 and 12.
 
 ## Error Handling
 
-    404 Not Found — requested student does not exist.
-    409 Conflict — email already belongs to another student.
-    204 No Content — successful deletion.
+Custom Error Handling
 
-The reusable get_student_or_404() helper centralizes student lookup and 404 handling, keeping the CRUD endpoints DRY.
+The application uses custom exceptions instead of raising HTTPException directly from the CRUD router.
+Custom Exceptions
+
+    NotFoundException — resource does not exist.
+    DuplicateException — unique constraint violation.
+    BadRequestException — invalid business logic.
+
+These exceptions are registered with global handlers in main.py so that errors have a consistent response format.
+Error Responses
+404 — Student Not Found
+
+{
+  "error": "not_found",
+  "detail": "Student with id 999 not found"
+}
+
+409 — Duplicate Email
+
+{
+  "error": "duplicate",
+  "detail": "Student with email 'student@example.com' already exists"
+}
+
+400 — Invalid Business Logic
+
+An enrolled student cannot be deleted.
+
+{
+  "error": "bad_request",
+  "detail": "An enrolled student cannot be deleted"
+}
+
+Database IntegrityError exceptions are rolled back before raising the appropriate custom exception.
+Helper Function
 Setup
 
 ## Install dependencies:
 
-pip install fastapi uvicorn sqlalchemy
+pip install -r requirements.txt
 
 ## Run the application:
 
@@ -88,6 +158,12 @@ uvicorn app.main:app --reload
 Open Swagger UI:
 
 http://127.0.0.1:8000/docs
+
+4. Run Automated Tests
+
+From the project root:
+
+python -m pytest -v
 
 CRUD Test Cycle
 
@@ -109,9 +185,8 @@ GET by ID → 404
 
  testing the important edge cases:
 
-    Duplicate email → 409
-    Nonexistent student → 404
-    Invalid grade level → validation error
-    PATCH with a single field → only that field changes
+    
+
+
 
 
