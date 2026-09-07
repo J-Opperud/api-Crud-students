@@ -1,13 +1,16 @@
+from app.routers import users, auth_rout, students
 from fastapi import FastAPI,Request
-from fastapi.responses import JSONResponse
 from app.database import Base, engine
-from app.routers import students
+from app.models.auth_user import Auth_User
+from fastapi.responses import JSONResponse
 from app.utils.exceptions import (BadRequestException,DuplicateException,NotFoundException)
+
+
+
 Base.metadata.create_all(bind=engine)
 
-
 app = FastAPI(
-    title="Notes API",
+    title="Student API",
     description="A FastAPI application for managing Students with SQLite.",
     )
 
@@ -52,7 +55,8 @@ async def bad_request_handler(
         },
     )
 app.include_router(students.router)
-
+app.include_router(auth_rout.router)
+app.include_router(users.router)
 
 @app.get("/")
 def root():
