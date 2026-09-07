@@ -3,10 +3,12 @@ from app.database import get_db
 from sqlalchemy.orm import Session
 from app.models.student import Student
 from sqlalchemy.exc import IntegrityError
+from app.utils.security import get_current_user
 from app.schemas.student import StudentPatch,StudentUpdate
 from fastapi import APIRouter, Depends,status,Response,Query
 from app.schemas.student import StudentCreate,StudentResponse
 from app.utils.exceptions import BadRequestException, DuplicateException, NotFoundException
+
 
 router = APIRouter(
     prefix="/students",
@@ -34,6 +36,8 @@ def Create_student(
     student_data: StudentCreate, 
     db:Session = Depends(
         get_db),
+    _: object = Depends(
+        get_current_user),
         ):
     student = Student(
         **student_data.model_dump()
@@ -97,6 +101,7 @@ def get_students(
 def get_student(
     student_id: int,
     db: Session = Depends(get_db),
+    _:object = Depends(get_current_user),
     ):
     return get_student_or_404(student_id, db)
 
@@ -113,6 +118,7 @@ def update_student(
     student_id: int,
     student_data: StudentUpdate,
     db: Session = Depends(get_db),
+    _:object = Depends(get_current_user),
     ):
 
     student = get_student_or_404(student_id, db)
@@ -151,6 +157,8 @@ def patch_student(
     student_data: StudentPatch,
     db: Session = Depends(
         get_db),
+    _:object = Depends(
+        get_current_user),
     ):
 
     student = get_student_or_404(student_id, db)
@@ -192,6 +200,8 @@ def delete_student(
     student_id: int,
     db: Session = Depends(
         get_db),
+    _:object = Depends(
+        get_current_user),
         ):
 
     student = get_student_or_404(student_id, db)
