@@ -1,14 +1,15 @@
+from fastapi import APIRouter, Depends,status,Response,Query, BackgroundTasks
 from sqlalchemy import select
 from app.database import get_db
 from sqlalchemy.orm import Session
-from app.models.student import Student
 from sqlalchemy.exc import IntegrityError
 from app.utils.security import get_current_user
-from app.schemas.student import StudentPatch,StudentUpdate
-from fastapi import APIRouter, Depends,status,Response,Query
+from app.models.student import Student
 from app.schemas.student import StudentCreate,StudentResponse
+from app.schemas.student import StudentPatch,StudentUpdate
 from app.utils.exceptions import BadRequestException, DuplicateException, NotFoundException
-
+from app.utils.notifications import log_activity, send_notification
+from app.models.auth_user import Auth_User
 
 router = APIRouter(
     prefix="/students",
@@ -34,6 +35,8 @@ def get_student_or_404(student_id: int, db: Session,) -> Student:
     response_model=StudentResponse, status_code=201)
 def Create_student(
     student_data: StudentCreate, 
+    background_tasks: BackgroundTasks,
+    current_user: Auth_User = Depends( get_current_user),
     db:Session = Depends(
         get_db),
     _: object = Depends(
@@ -56,6 +59,20 @@ def Create_student(
             )
             
     db.refresh(student)
+
+    background_tasks.add_task(
+        log_activity,
+        current_user.email,
+
+        f"Created student {student.name}{student.id}"
+        )
+    background_tasks.add_task(
+        send_notification,
+        current_user.email,
+    
+        f"Student {student.name} was created successfully"
+        )
+
 
     return student
 
@@ -107,7 +124,7 @@ def get_student(
 
 
 
-#---------------------------------full replacement-----------------------------
+#-------------------full replacement-----------------------------
 
 
 @router.put(
@@ -198,6 +215,8 @@ def patch_student(
     )
 def delete_student(
     student_id: int,
+    background_tasks: BackgroundTasks,
+    current_user: Auth_User = Depends( get_current_user),
     db: Session = Depends(
         get_db),
     _:object = Depends(
@@ -214,6 +233,17 @@ def delete_student(
 
     db.commit()
 
+    background_tasks.add_task(
+        log_activity, 
+        current_user.email,
+        f"Deleted student {student.name} {student_id}")
+
+    background_tasks.add_task(
+        send_notification,
+        current_user.email,
+    
+        f"Student {student.name} was removed successfully"
+        )
     return Response(
         status_code=status.HTTP_204_NO_CONTENT
         )
