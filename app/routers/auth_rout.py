@@ -2,9 +2,10 @@ from app.database import get_db
 from sqlalchemy.orm import Session
 from app.models.auth_user import Auth_User
 from app.utils.exceptions import DuplicateException
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse,UserResponse
-from app.utils.security import hash_password, verify_password, create_access_token, get_current_user
+from app.utils.security import hash_password, verify_password, create_access_token
+from app.utils.rate_limit import limiter
 
 router = APIRouter(
     prefix="/auth",
@@ -59,15 +60,17 @@ def register(
         "/login", 
         response_model=TokenResponse
         )
+@limiter.limit("5/minute")
 def login(
-    request: LoginRequest, 
+    request: Request,
+    login_data: LoginRequest, 
     db: Session = Depends(
     get_db)
     ):
     """Log in and recive a access token."""
-    user = db.query(Auth_User).filter(Auth_User.email == request.email).first()
+    user = db.query(Auth_User).filter(Auth_User.email == login_data.email).first()
 
-    if not user or not verify_password(request.password, user.hashed_password):
+    if not user or not verify_password(login_data.password, user.hashed_password):
         raise HTTPException(
             status_code=401, 
             detail="Invalid password or email")

@@ -2,10 +2,23 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+from app.utils.security import get_current_user
+from app.models.auth_user import Auth_User
 
 from app.main import app
 from app.database import get_db, Base
 
+
+class FakeUser:
+    id = 1
+    email = "test@example.com"
+
+
+def override_get_current_user():
+    return FakeUser()
+
+
+app.dependency_overrides[get_current_user] = override_get_current_user
 
 TEST_DATABASE_URL = "sqlite://"
 

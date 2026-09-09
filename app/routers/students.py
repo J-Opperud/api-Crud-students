@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends,status,Response,Query, BackgroundTasks
+from fastapi import APIRouter, Depends,status,Response,Query, BackgroundTasks, Request
 from sqlalchemy import select
 from app.database import get_db
 from sqlalchemy.orm import Session
@@ -7,9 +7,10 @@ from app.utils.security import get_current_user
 from app.models.student import Student
 from app.schemas.student import StudentCreate,StudentResponse
 from app.schemas.student import StudentPatch,StudentUpdate
+from app.models.auth_user import Auth_User
+from app.utils.rate_limit import limiter
 from app.utils.exceptions import BadRequestException, DuplicateException, NotFoundException
 from app.utils.notifications import log_activity, send_notification
-from app.models.auth_user import Auth_User
 
 router = APIRouter(
     prefix="/students",
@@ -32,15 +33,16 @@ def get_student_or_404(student_id: int, db: Session,) -> Student:
 
 @router.post(
     "",
-    response_model=StudentResponse, status_code=201)
+    response_model=StudentResponse, status_code=201
+    )
+@limiter.limit("20/minute")
 def Create_student(
+    request: Request,
     student_data: StudentCreate, 
     background_tasks: BackgroundTasks,
-    current_user: Auth_User = Depends( get_current_user),
+    current_user: Auth_User = Depends(get_current_user),
     db:Session = Depends(
         get_db),
-    _: object = Depends(
-        get_current_user),
         ):
     student = Student(
         **student_data.model_dump()
@@ -82,7 +84,9 @@ def Create_student(
     "",
     response_model=list[StudentResponse],
     )
+@limiter.limit("60/minute")
 def get_students(
+    request: Request,
     grade_level: int | None = Query(
         default=None,
         ge=1,
@@ -115,7 +119,9 @@ def get_students(
     "/{student_id}",
     response_model=StudentResponse,
     )
+@limiter.limit("60/minute")
 def get_student(
+    request: Request,
     student_id: int,
     db: Session = Depends(get_db),
     _:object = Depends(get_current_user),
@@ -216,11 +222,10 @@ def patch_student(
 def delete_student(
     student_id: int,
     background_tasks: BackgroundTasks,
-    current_user: Auth_User = Depends( get_current_user),
+    current_user: Auth_User = Depends(
+        get_current_user),
     db: Session = Depends(
         get_db),
-    _:object = Depends(
-        get_current_user),
         ):
 
     student = get_student_or_404(student_id, db)
