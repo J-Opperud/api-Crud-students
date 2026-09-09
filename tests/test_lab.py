@@ -9,54 +9,9 @@ from app.main import app
 from app.database import get_db, Base
 
 
-class FakeUser:
-    id = 1
-    email = "test@example.com"
 
 
-def override_get_current_user():
-    return FakeUser()
-
-
-app.dependency_overrides[get_current_user] = override_get_current_user
-
-TEST_DATABASE_URL = "sqlite://"
-
-test_engine = create_engine(
-    TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-
-TestingSessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=test_engine,
-)
-
-
-Base.metadata.create_all(bind=test_engine)
-
-
-def override_get_db():
-    db = TestingSessionLocal()
-
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
-
-client = TestClient(app)
-
-
-
-client = TestClient(app)
-
-
-def test_get_student_not_found():
+def test_get_student_not_found(client):
     response = client.get("/students/999")
 
     assert response.status_code == 404
@@ -67,7 +22,7 @@ def test_get_student_not_found():
     }
 
 
-def test_duplicate_student_email():
+def test_duplicate_student_email(client):
     student = {
         "name": "John Smith",
         "email": "smiththesith@example.com",
@@ -95,7 +50,7 @@ def test_duplicate_student_email():
         "detail": "Student with email 'smiththesith@example.com' already exists",
     }
 
-def test_delete_enrolled_student():
+def test_delete_enrolled_student(client):
     student = {
         "name": "Jane Doe",
         "email": "doeyes@example.com",
@@ -124,7 +79,7 @@ def test_delete_enrolled_student():
         "detail": "An enrolled student cannot be deleted",
     }
 
-def test_create_student():
+def test_create_student(client):
     student = {
         "name": "Jackie Reacher",
         "email": "reacher@example.com",
@@ -143,7 +98,7 @@ def test_create_student():
     assert data["email"] == "reacher@example.com"
     assert "id" in data
 
-def test_get_student():
+def test_get_student(client):
     student = {
         "name": "Chips Johnson",
         "email": "gettest@example.com",
@@ -168,7 +123,7 @@ def test_get_student():
     assert data["name"] == "Chips Johnson"
     assert data["email"] == "gettest@example.com"
 
-def test_patch_student():
+def test_patch_student(client):
     student = {
         "name": "Patch Student",
         "email": "patch@example.com",
@@ -197,7 +152,7 @@ def test_patch_student():
     assert data["name"] == "Patch Student"
     assert data["email"] == "patch@example.com"
 
-def test_update_student():
+def test_update_student(client):
     student = {
         "name": "Original Student",
         "email": "original@example.com",
@@ -236,7 +191,7 @@ def test_update_student():
     assert data["gpa"] == 3.9
     assert data["is_enrolled"] is False
 
-def test_delete_student():
+def test_delete_student(client):
     student = {
         "name": "Delete Student",
         "email": "delete@example.com",
