@@ -20,3 +20,12 @@ venv/
 *.db
 *.sqlite
 *.sqlite3
+
+# Coverage
+.coverage
+htmlcov/
+
+# Application logs
+activity_log.txt
+notification_log.txt
+

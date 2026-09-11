@@ -30,7 +30,35 @@ from app.utils.rate_limit import limiter
 
 app = FastAPI(
     title="Student API",
-    description="A FastAPI application for managing Students with SQLite.",
+    description="""
+# Student Management API
+# A REST API for managing students and user authentication with **FastAPI** and **SQLite**.
+
+## Features
+
+- Student CRUD operations
+- User authentication
+- Request validation with Pydantic
+- Rate limiting
+- CORS protection
+- Structured error responses
+""",
+version="1.0.0",
+    openapi_tags=[
+        {
+            "name": "students",
+            "description": "Create, retrieve, update, and delete student records.",
+        },
+        {
+            "name": "Authentication",
+            "description": "User registration, login, and authentication operations.",
+        },
+        {
+            "name": "Users",
+            "description": "Operations for managing authenticated users.",
+        },
+    ],
+    
     )
 
 #--------------------security: Rate limit------

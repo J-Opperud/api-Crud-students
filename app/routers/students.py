@@ -33,7 +33,12 @@ def get_student_or_404(student_id: int, db: Session,) -> Student:
 
 @router.post(
     "",
-    response_model=StudentResponse, status_code=201
+    response_model=StudentResponse, status_code=201,
+    summary="Create a student",
+    responses={
+        401: {"description": "Authentication credentials are missing or invalid."},
+        422: {"description": "Validation error for the student data."},
+        }
     )
 @limiter.limit("20/minute")
 def Create_student(
@@ -44,6 +49,16 @@ def Create_student(
     db:Session = Depends(
         get_db),
         ):
+    """
+    Create a new student record.
+
+    - Requires an authenticated user.
+    - Validates the student data before creation.
+    - Returns the newly created student.
+    - Returns 422 when the student data fails validation.
+    
+    """
+
     student = Student(
         **student_data.model_dump()
         )
@@ -83,6 +98,10 @@ def Create_student(
 @router.get(
     "",
     response_model=list[StudentResponse],
+    summary="List students",
+    responses={
+        422: {"description": "Validation error for the query parameters."},
+        },
     )
 @limiter.limit("60/minute")
 def get_students(
@@ -96,6 +115,16 @@ def get_students(
     db: Session = Depends(
         get_db),
     ):
+    """
+
+    Retrieve a list of students.
+
+    - Returns all students when no filters are provided.
+    - Supports filtering by grade level.
+    - Supports filtering by enrollment status.
+    - Returns 422 when a query parameter fails validation
+
+    """
     statement = select(Student)
 
     if grade_level is not None:
@@ -118,7 +147,14 @@ def get_students(
 @router.get(
     "/{student_id}",
     response_model=StudentResponse,
+     summary="Get a student by ID",
+    responses={
+        401: {"description": "Authentication credentials are missing or invalid."},
+        404: {"description": "Student with the specified ID was not found."},
+        422: {"description": "Validation error for the student ID."},
+        },
     )
+    
 @limiter.limit("60/minute")
 def get_student(
     request: Request,
@@ -126,6 +162,16 @@ def get_student(
     db: Session = Depends(get_db),
     _:object = Depends(get_current_user),
     ):
+    """
+    
+    Retrieve a student by ID.
+
+    - Requires an authenticated user.
+    - Returns the student matching the specified ID.
+    - Returns 404 when the student does not exist.
+    - Returns 422 when the student ID is invalid.
+    
+    """
     return get_student_or_404(student_id, db)
 
 
@@ -136,13 +182,31 @@ def get_student(
 @router.put(
     "/{student_id}",
     response_model=StudentResponse,
+    summary="Update a student",
+    responses={
+        401: {"description": "Authentication credentials are missing or invalid."},
+        404: {"description": "Student with the specified ID was not found."},
+        422: {"description": "Validation error for the student ID or student data."},
+        },
     )
+
 def update_student(
     student_id: int,
     student_data: StudentUpdate,
     db: Session = Depends(get_db),
     _:object = Depends(get_current_user),
     ):
+
+    """
+    Update an existing student.
+
+    - Requires an authenticated user.
+    - Replaces all the student's current information with the provided data.
+    - Returns the updated student.
+    - Returns 404 when the student does not exist.
+    - Returns 422 when the request data is invalid.
+    
+    """
 
     student = get_student_or_404(student_id, db)
 
@@ -174,6 +238,13 @@ def update_student(
 @router.patch(
     "/{student_id}",
     response_model=StudentResponse,
+    summary="Partially update a student",
+    responses={
+        400: {"description": "At least one field must be provided."},
+        401: {"description": "Authentication credentials are missing or invalid."},
+        404: {"description": "Student with the specified ID was not found."},
+        422: {"description": "Validation error for the student ID or update data."},
+        },
     )
 def patch_student(
     student_id: int,
@@ -183,7 +254,19 @@ def patch_student(
     _:object = Depends(
         get_current_user),
     ):
+    """
+    
+    Partially update an existing student.
 
+    - Requires an authenticated user.
+    - Updates only the fields provided in the request.
+    - Returns the updated student.
+    - Returns 400 when no fields are provided.
+    - Returns 404 when the student does not exist.
+    - Returns 422 when the request data is invalid.
+    
+    """
+     
     student = get_student_or_404(student_id, db)
 
     update_data = student_data.model_dump(
@@ -218,7 +301,15 @@ def patch_student(
 @router.delete(
     "/{student_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+     summary="Delete a student",
+    responses={
+        400: {"description": "An enrolled student cannot be deleted."},
+        401: {"description": "Authentication credentials are missing or invalid."},
+        404: {"description": "Student with the specified ID was not found."},
+        422: {"description": "Validation error for the student ID."},
+        },
     )
+
 def delete_student(
     student_id: int,
     background_tasks: BackgroundTasks,
@@ -227,6 +318,18 @@ def delete_student(
     db: Session = Depends(
         get_db),
         ):
+
+    """
+    
+    Delete a student by ID.
+
+    - Requires an authenticated user.
+    - Deletes the student when the student is not enrolled.
+    - Returns 400 when an enrolled student cannot be deleted.
+    - Returns 404 when the student does not exist.
+    - Returns 204 after successful deletion.
+    
+    """
 
     student = get_student_or_404(student_id, db)
     if student.is_enrolled:
@@ -241,7 +344,8 @@ def delete_student(
     background_tasks.add_task(
         log_activity, 
         current_user.email,
-        f"Deleted student {student.name} {student_id}")
+        f"Deleted student {student.name} {student_id}"
+        )
 
     background_tasks.add_task(
         send_notification,

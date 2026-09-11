@@ -16,14 +16,17 @@ router = APIRouter(
 @router.post(
     "/register", 
     response_model=TokenResponse, 
-    status_code=201
+    status_code=201,
+    summary="user receives token, the password is hashed before storage.",
+    responses={
+        422: {"description": "Validation error for the registration data."},
+        },
     )
 def register(
     request: RegisterRequest, 
     db: Session = Depends(
         get_db)
     ):
-    """Register a new user return token."""
 
     existing = db.query(Auth_User).filter(
         (Auth_User.email == request.email) |
@@ -58,7 +61,12 @@ def register(
         }
 @router.post(
         "/login", 
-        response_model=TokenResponse
+        response_model=TokenResponse,
+        summary="Log in a user",
+        responses={
+            422: {"description": "Validation error for the login data."},
+            401: {"description": " Invalid email or password."},
+            },
         )
 @limiter.limit("5/minute")
 def login(
@@ -67,7 +75,14 @@ def login(
     db: Session = Depends(
     get_db)
     ):
-    """Log in and recive a access token."""
+    """
+    Authenticate a user and return an access token.
+
+    - Verifies the user's email and password.
+    - Returns a bearer access token after successful authentication.
+    - Returns 401 when the email or password is invalid.
+    - Returns 422 when the login data fails validation."""
+    
     user = db.query(Auth_User).filter(Auth_User.email == login_data.email).first()
 
     if not user or not verify_password(login_data.password, user.hashed_password):
