@@ -14,7 +14,7 @@ def trigger_not_found():
 
 
 #Pytest test
-def test_not_found_handler():
+def test_not_found_handler(client):
     response = client.get("/test-not-found")
 
     assert response.status_code == 404
@@ -32,7 +32,7 @@ def trigger_duplicate():
         "test@example.com",
    )
 
-def test_duplicate_handler():
+def test_duplicate_handler(client):
     response = client.get("/test-duplicate")
 
     assert response.status_code == 409

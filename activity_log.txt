@@ -1,9 +1,0 @@
-2026-09-07T16:10:24.856499 | User 1test activity
-2026-09-08T13:56:16.237399 | User Murryme@balimail.com Created student 6
-2026-09-08T13:57:32.590170 | User Murryme@balimail.com Deleted student 6
-2026-09-08T14:04:03.073597 | User Murryme@balimail.com Created student 6
-None2026-09-08T14:12:20.605767 | User Murryme@balimail.com Deleted student 6
-None2026-09-08T14:12:32.207034 | User Murryme@balimail.com Created student lemmon snickit6
-None2026-09-08T14:12:51.947547 | User Murryme@balimail.com Deleted student 6
-None2026-09-08T14:21:28.361405 | User john@example.com Created student Tom Mars6
-None2026-09-08T14:21:57.160020 | User john@example.com Deleted student Tom Mars 6
