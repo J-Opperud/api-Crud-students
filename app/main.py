@@ -1,19 +1,15 @@
 """
 Security measures:
 
-- CORS restricted to localhost:8501 (Streamlit)
-  and localhost:3000 (React).
+- CORS restricted to approved frontend origins.
 - CORS methods restricted to methods used by the API.
-- Rate limiting implemented with slowapi.
-- Login endpoint limited to 5 requests per minute.
-- POST/create endpoints limited to 20 requests per minute.
-- GET/list/detail endpoints limited to 60 requests per minute.
-- Pydantic schemas enforce string length limits.
-- Pydantic schemas enforce reasonable numeric bounds.
-- Rate-limit violations return HTTP 429 Too Many Requests.
+- Application-wide rate limit of 10 requests per minute per IP.
+- Rate-limit violations return HTTP 429.
+- Pydantic schemas enforce input validation and sanitization.
+- SQLAlchemy parameterized queries protect against SQL injection.
 """
 
-from app.routers import users, auth_rout, students
+from app.routers import users, auth_rout, students, items
 from fastapi import FastAPI,Request
 from app.database import Base, engine
 from app.models.auth_user import Auth_User
@@ -140,6 +136,7 @@ async def bad_request_handler(
 app.include_router(students.router)
 app.include_router(auth_rout.router)
 app.include_router(users.router)
+app.include_router(items.router)
 
 @app.get("/")
 def root():

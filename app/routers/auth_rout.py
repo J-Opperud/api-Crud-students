@@ -68,7 +68,7 @@ def register(
             401: {"description": " Invalid email or password."},
             },
         )
-@limiter.limit("5/minute")
+@limiter.limit("10/minute")
 def login(
     request: Request,
     login_data: LoginRequest, 

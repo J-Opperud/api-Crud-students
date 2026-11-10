@@ -40,7 +40,7 @@ def get_student_or_404(student_id: int, db: Session,) -> Student:
         422: {"description": "Validation error for the student data."},
         }
     )
-@limiter.limit("20/minute")
+@limiter.limit("10/minute")
 def Create_student(
     request: Request,
     student_data: StudentCreate, 
@@ -103,7 +103,7 @@ def Create_student(
         422: {"description": "Validation error for the query parameters."},
         },
     )
-@limiter.limit("60/minute")
+@limiter.limit("10/minute")
 def get_students(
     request: Request,
     grade_level: int | None = Query(
@@ -155,7 +155,7 @@ def get_students(
         },
     )
     
-@limiter.limit("60/minute")
+@limiter.limit("10/minute")
 def get_student(
     request: Request,
     student_id: int,
